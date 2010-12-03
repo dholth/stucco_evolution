@@ -65,13 +65,17 @@ class SQLAlchemyEvolutionManager(object):
 def initialize(session):
     """Initialize tables for this package and upgrade to latest schema."""
     Base.metadata.create_all(session.bind)
+    manager = SQLAlchemyEvolutionManager(session, 'ponzi_evolution.evolve',
+            PONZI_EVOLUTION_SCHEMA_VERSION,
+            packagename='ponzi_evolution')
+    if manager.get_db_version() is None:
+        manager.set_db_version(PONZI_EVOLUTION_SCHEMA_VERSION)
 
 def upgrade(session):
     """Upgrade this package's schema to the latest version."""
     import repoze.evolution
     manager = SQLAlchemyEvolutionManager(session, 'ponzi_evolution.evolve',
             PONZI_EVOLUTION_SCHEMA_VERSION,
-            initial_db_version=PONZI_EVOLUTION_SCHEMA_VERSION,
             packagename='ponzi_evolution')
     repoze.evolution.evolve_to_latest(manager)
 

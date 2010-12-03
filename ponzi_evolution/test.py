@@ -9,6 +9,7 @@ def test_evolve():
     session = Session()
     ponzi_evolution.initialize(session)
     ponzi_evolution.upgrade(session)
-
+    session.commit()
     ponzi_evolution.PONZI_EVOLUTION_SCHEMA_VERSION = 1
     ponzi_evolution.upgrade(session)
+    session.commit()
