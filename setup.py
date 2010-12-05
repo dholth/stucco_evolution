@@ -9,8 +9,8 @@ CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 requires = ['SQLAlchemy', 'repoze.evolution']
 
 setup(name='ponzi_evolution',
-      version='0.0',
-      description='ponzi_evolution',
+      version='0.8998',
+      description='Dead simple schema upgrades for SQLAlchemy.',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
         "Programming Language :: Python",

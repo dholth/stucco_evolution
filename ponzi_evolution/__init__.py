@@ -21,17 +21,25 @@ class SQLAlchemyEvolutionManager(object):
     def __init__(self, session, evolve_packagename,
                  sw_version, initial_db_version=None,
                  packagename=None):
-        """ Initialize a SQLAlchemy evolution manager.  ``session``
-        is a SQLAlchemy ORM session that will be passed in to each
-        evolution step.  ``evolve_packagename`` is the Python dotted
-        package name of a package which contains evolution scripts.
-        ``packagename`` is the name used in the table used to track schema
-        versions or ``evolve_packagename`` if not provided. ``sw_version``
-        is the current software version of the software represented by
-        this manager.  ``initial_db_version`` indicates the presumed
-        version of a database which doesn't already have a version set.
-        If not supplied or is set to ``None``, the evolution manager will
-        not attempt to construe the version of a an unversioned db."""
+        """ Initialize a SQLAlchemy evolution manager.
+        
+        :param session: is a SQLAlchemy ORM session that will be passed
+        in to each evolution step.
+
+        :param evolve_packagename: is the Python dotted package name of
+        a package which contains evolution scripts.
+
+        :param packagename: is the name used in the table used to track
+        schema versions or ``evolve_packagename`` if not provided.
+
+        :param sw_version: is the current software version of the software
+        represented by this manager.
+
+        :param initial_db_version`` indicates the presumed version of
+        a database which doesn't already have a version set.  If not
+        supplied or is set to ``None``, the evolution manager will not
+        attempt to construe the version of a an unversioned db.
+        """
         self.session = session
         self.evolve_packagename = evolve_packagename
         self.packagename = packagename or evolve_packagename
@@ -53,7 +61,6 @@ class SQLAlchemyEvolutionManager(object):
         evmodule = EntryPoint.parse('x=%s' % scriptname).load(False)
         evmodule.evolve(self.session)
         self.set_db_version(version)
-        self.session.commit()
 
     def set_db_version(self, version):
         db_version = self.session.query(SchemaVersion).get(self.packagename)
@@ -63,7 +70,7 @@ class SQLAlchemyEvolutionManager(object):
         self.session.add(db_version)
 
 def initialize(session):
-    """Initialize tables for this package and upgrade to latest schema."""
+    """Initialize tables for ponzi_evolution itself."""
     Base.metadata.create_all(session.bind)
     manager = SQLAlchemyEvolutionManager(session, 'ponzi_evolution.evolve',
             PONZI_EVOLUTION_SCHEMA_VERSION,
@@ -72,10 +79,11 @@ def initialize(session):
         manager.set_db_version(PONZI_EVOLUTION_SCHEMA_VERSION)
 
 def upgrade(session):
-    """Upgrade this package's schema to the latest version."""
+    """Upgrade ponzi_evolution's schema to the latest version."""
     import repoze.evolution
     manager = SQLAlchemyEvolutionManager(session, 'ponzi_evolution.evolve',
             PONZI_EVOLUTION_SCHEMA_VERSION,
             packagename='ponzi_evolution')
+    Base.metadata.create_all(session.bind)
     repoze.evolution.evolve_to_latest(manager)
 

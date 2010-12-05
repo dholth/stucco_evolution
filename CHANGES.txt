@@ -1,3 +1,15 @@
+0.8998
+------
+
+- Improved packagibility (MANIFEST.in specified)
+- SQLAlchemyEvolutionManager no longer calls session.commit(); this is
+  your responsibility after the migration has completed.
+
+0.8
+---
+
+- 100% statement coverage
+
 0.0
 ---
 
