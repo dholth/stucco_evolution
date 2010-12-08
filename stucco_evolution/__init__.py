@@ -9,10 +9,10 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
-PONZI_EVOLUTION_SCHEMA_VERSION = 0
+SCHEMA_VERSION = 2
 
 class SchemaVersion(Base):
-    __tablename__ = 'ponzi_evolution'
+    __tablename__ = 'stucco_evolution'
     package = Column(String(30), primary_key=True)
     version = Column(Integer)
 
@@ -51,7 +51,7 @@ class SQLAlchemyEvolutionManager(object):
 
     def get_db_version(self):
         query = self.session.query(SchemaVersion)
-        db_version = query.get(self.packagename)
+        db_version = query.filter_by(package=self.packagename).first()
         if db_version is None:
             return self.initial_db_version
         return db_version.version
@@ -69,21 +69,26 @@ class SQLAlchemyEvolutionManager(object):
         db_version.version = version
         self.session.add(db_version)
 
+    def __repr__(self):
+        return "<%s%r>" % (self.__class__.__name__, (self.package, self.version))
+
 def initialize(session):
-    """Initialize tables for ponzi_evolution itself."""
+    """Initialize tables for stucco_evolution itself."""
     Base.metadata.create_all(session.bind)
-    manager = SQLAlchemyEvolutionManager(session, 'ponzi_evolution.evolve',
-            PONZI_EVOLUTION_SCHEMA_VERSION,
-            packagename='ponzi_evolution')
+    manager = SQLAlchemyEvolutionManager(session, 'stucco_evolution.evolve',
+            SCHEMA_VERSION,
+            packagename='stucco_evolution')
     if manager.get_db_version() is None:
-        manager.set_db_version(PONZI_EVOLUTION_SCHEMA_VERSION)
+        if session.bind.has_table('ponzi_evolution'):
+            manager.set_db_version(1) # bw compat.
+        else:
+            manager.set_db_version(SCHEMA_VERSION)
 
 def upgrade(session):
-    """Upgrade ponzi_evolution's schema to the latest version."""
+    """Upgrade stucco_evolution's schema to the latest version."""
     import repoze.evolution
-    manager = SQLAlchemyEvolutionManager(session, 'ponzi_evolution.evolve',
-            PONZI_EVOLUTION_SCHEMA_VERSION,
-            packagename='ponzi_evolution')
-    Base.metadata.create_all(session.bind)
+    manager = SQLAlchemyEvolutionManager(session, 'stucco_evolution.evolve',
+            SCHEMA_VERSION,
+            packagename='stucco_evolution')
     repoze.evolution.evolve_to_latest(manager)
 

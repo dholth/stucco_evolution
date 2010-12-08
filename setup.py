@@ -8,8 +8,8 @@ CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 requires = ['SQLAlchemy', 'repoze.evolution']
 
-setup(name='ponzi_evolution',
-      version='0.8998',
+setup(name='stucco_evolution',
+      version='0.9',
       description='Dead simple schema upgrades for SQLAlchemy.',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
@@ -20,14 +20,15 @@ setup(name='ponzi_evolution',
         ],
       author='Daniel Holth',
       author_email='dholth@fastmail.fm',
-      url='http://bitbucket.org/dholth/ponzi_evolution',
+      url='http://bitbucket.org/dholth/stucco_evolution',
       keywords='sqlalchemy',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
       install_requires=requires,
       tests_require=requires,
-      test_suite="ponzi_evolution",
+      obsoletes=['ponzi_evolution'],
+      test_suite="stucco_evolution",
       entry_points = """\
       """,
       )
