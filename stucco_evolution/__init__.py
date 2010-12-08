@@ -81,6 +81,7 @@ def initialize(session):
     if manager.get_db_version() is None:
         if session.bind.has_table('ponzi_evolution'):
             manager.set_db_version(1) # bw compat.
+            upgrade(session)
         else:
             manager.set_db_version(SCHEMA_VERSION)
 
