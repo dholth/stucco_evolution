@@ -16,6 +16,9 @@ class SchemaVersion(Base):
     package = Column(String(30), primary_key=True)
     version = Column(Integer)
 
+    def __repr__(self):
+        return "<%s%r>" % (self.__class__.__name__, (self.package, self.version))
+
 class SQLAlchemyEvolutionManager(object):
     implements(IEvolutionManager)
     def __init__(self, session, evolve_packagename,
@@ -70,20 +73,16 @@ class SQLAlchemyEvolutionManager(object):
         self.session.add(db_version)
 
     def __repr__(self):
-        return "<%s%r>" % (self.__class__.__name__, (self.package, self.version))
+        return "<%s%r>" % (self.__class__.__name__, (self.packagename, self.sw_version))
 
 def initialize(session):
     """Initialize tables for stucco_evolution itself."""
-    Base.metadata.create_all(session.bind)
-    manager = SQLAlchemyEvolutionManager(session, 'stucco_evolution.evolve',
-            SCHEMA_VERSION,
-            packagename='stucco_evolution')
-    if manager.get_db_version() is None:
-        if session.bind.has_table('ponzi_evolution'):
-            manager.set_db_version(1) # bw compat.
-            upgrade(session)
-        else:
-            manager.set_db_version(SCHEMA_VERSION)
+    if not session.bind.has_table(SchemaVersion.__tablename__):
+        Base.metadata.create_all(session.bind)
+        manager = SQLAlchemyEvolutionManager(session, 'stucco_evolution.evolve',
+                SCHEMA_VERSION,
+                packagename='stucco_evolution')
+        manager.set_db_version(SCHEMA_VERSION)
 
 def upgrade(session):
     """Upgrade stucco_evolution's schema to the latest version."""
