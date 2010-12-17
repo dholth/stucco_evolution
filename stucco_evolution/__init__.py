@@ -7,9 +7,9 @@ from repoze.evolution import IEvolutionManager
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+from stucco_evolution.evolve import NAME, VERSION
 
-SCHEMA_VERSION = 2
+Base = declarative_base()
 
 class SchemaVersion(Base):
     __tablename__ = 'stucco_evolution'
@@ -80,15 +80,15 @@ def initialize(session):
     if not session.bind.has_table(SchemaVersion.__tablename__):
         Base.metadata.create_all(session.bind)
         manager = SQLAlchemyEvolutionManager(session, 'stucco_evolution.evolve',
-                SCHEMA_VERSION,
-                packagename='stucco_evolution')
-        manager.set_db_version(SCHEMA_VERSION)
+                VERSION,
+                packagename=NAME)
+        manager.set_db_version(VERSION)
 
 def upgrade(session):
     """Upgrade stucco_evolution's schema to the latest version."""
     import repoze.evolution
     manager = SQLAlchemyEvolutionManager(session, 'stucco_evolution.evolve',
-            SCHEMA_VERSION,
-            packagename='stucco_evolution')
+            VERSION,
+            packagename=NAME)
     repoze.evolution.evolve_to_latest(manager)
 
