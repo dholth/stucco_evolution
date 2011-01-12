@@ -8,9 +8,18 @@ from repoze.evolution import IEvolutionManager
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
-from stucco_evolution.evolve import NAME, VERSION
+import logging
+log = logging.getLogger(__name__)
 
 Base = declarative_base()
+
+class CircularDependencyError(Exception):
+    def __init__(self, packagenames):
+        self.packagenames = packagenames
+        self.message = "Circular dependency between evolution modules:"
+    
+    def __str__(self):
+        return "%s %r" % (self.message, self.packagenames)
 
 class SchemaVersion(Base):
     __tablename__ = 'stucco_evolution'
@@ -40,10 +49,8 @@ class SQLAlchemyEvolutionManager(object):
         :param sw_version: is the current software version of the software
         represented by this manager.
 
-        :param initial_db_version`` indicates the presumed version of
-        a database which doesn't already have a version set.  If not
-        supplied or is set to ``None``, the evolution manager will not
-        attempt to construe the version of a an unversioned db.
+        :param initial_db_version`` is left over from repoze.evolution; not 
+        currently useful as anything but the default 'None'.
         """
         self.session = session
         self.evolve_packagename = evolve_packagename
@@ -62,15 +69,24 @@ class SQLAlchemyEvolutionManager(object):
         return db_version.version
 
     def evolve_to(self, version):
+        """Run single evolve script with our session. Record version.
+        
+        :param version: N of evolveN.py to run
+        """
         scriptname = '%s.evolve%s' % (self.evolve_packagename, version)
+        log.info("Run evolve script %s", scriptname)
         evmodule = EntryPoint.parse('x=%s' % scriptname).load(False)
         evmodule.evolve(self.session)
+        self.session.flush()
         self.set_db_version(version)
         
     def create(self):
+        """Run create.py to create latest schema version. Record version."""
         scriptname = '%s.create' % (self.evolve_packagename)
+        log.info("Run create script %s", scriptname)
         crmodule = EntryPoint.parse('x=%s' % scriptname).load(False)
         crmodule.create(self.session)
+        self.session.flush()
         if self.get_db_version() is None:
             self.set_db_version(self.sw_version)
 
@@ -85,33 +101,56 @@ class SQLAlchemyEvolutionManager(object):
         return "<%s%r>" % (self.__class__.__name__, 
                            (self.packagename, self.sw_version))
 
-def find_dependencies(packagename):
-    """Return list of database dependencies for packagename in topological order."""
+def dependencies(packagename):
+    """Return list of evolution modules for packagename and its dependencies
+    in topological order. Raise CircularDependencyError in case of circular
+    dependencies."""
     visited = set()
     dependencies = []
-    def find_dependencies_inner(pkgname): # XXX detect cycles.
+    stack = []
+    def find_dependencies_inner(pkgname):
+        stack.append(pkgname)
+        log.debug("%r %r", pkgname, stack)
+        if pkgname in stack[:-1]:
+            raise CircularDependencyError(stack)
         if not pkgname in visited:
             mod = EntryPoint.parse('x=%s.evolve' % pkgname).load(False)
             visited.add(pkgname)
             for p in mod.DEPENDS:
                 find_dependencies_inner(p)
-            dependencies.append((pkgname, mod))
+            dependencies.append(mod)
+        stack.pop()
     find_dependencies_inner(packagename)
     return dependencies
 
-def build_managers(session, dependencies):
-    """Generate SQLAlchemyEvolutionManager instances given a session
-    and a list of (packagename, module) tuples as returned by 
-    find_dependencies."""
-    managers = []
-    for packagename, mod in dependencies:
-        managers.append(SQLAlchemyEvolutionManager(
+def manager(session, package_or_name):
+    """Build one SQLAlchemyEvolutionManager for session and 
+    'import package_or_name.evolve' if package_or_name is a string, 
+    else build SQLAlchemyEvolutionManager for module package_or_name."""
+    if isinstance(package_or_name, basestring):
+        evmodule = EntryPoint.parse('x=%s.evolve' % package_or_name).load(False)
+    else:
+        evmodule = package_or_name
+    # Naming mischief is reserved for future expansion:
+    assert evmodule.__name__ == evmodule.NAME + '.evolve', \
+        'evolution module __name__ %r must start with NAME %r' \
+        ' and end with ".evolve"' % (
+            evmodule.__name__, evmodule.NAME)
+    manager = SQLAlchemyEvolutionManager(
                 session,
-                evolve_packagename='%s.evolve' % packagename,
-                packagename=packagename,
-                sw_version=mod.VERSION
-                ))
-    return managers
+                evolve_packagename=evmodule.__name__,
+                packagename=evmodule.NAME,
+                sw_version=evmodule.VERSION
+                )
+    return manager
+
+def managers(session, dependencies):
+    """Return a list of  SQLAlchemyEvolutionManager instances given a session
+    and a list of evolution modules as returned by dependencies()."""
+    built = []
+    for evmodule in dependencies:
+        built.append(manager(session, evmodule))
+    return built
 
 def create_many(managers):
     """Call manager.create() on a list of managers.
@@ -125,13 +164,25 @@ def upgrade_many(managers):
     for manager in managers:
         repoze.evolution.evolve_to_latest(manager)
 
-# XXX deprecated
-def initialize(session):
-    """Initialize tables for stucco_evolution itself."""
-    create_many(build_managers(session, find_dependencies('stucco_evolution')))
+def create_or_upgrade_many(managers):
+    """For each manager in managers, if manager.get_db_version() is None,
+    call manager.create(). Else call repoze.evolution.evolve_to_latest(manager).
+    With this strategy, evolveN.py (not create.py) is responsible for
+    creating any new tables introduced in that version. Recommended.
+    """
+    for manager in managers:
+        if manager.get_db_version() is None:
+            manager.create()
+        else:
+            repoze.evolution.evolve_to_latest(manager)
 
-# XXX deprecated
-def upgrade(session):
-    """Upgrade stucco_evolution's schema to the latest version."""
-    upgrade_many(build_managers(session, find_dependencies('stucco_evolution')))
-    
+def initialize(session):
+    """Create tables for stucco_evolution itself (if they do not exist)."""
+    create_many(managers(session, 
+                               dependencies('stucco_evolution')))
+
+def is_initialized(session):
+    """Is stucco_evolution ready to go for session?
+    If not, call initialize(session)"""
+    return session.bind.has_table(SchemaVersion.__tablename__)
+

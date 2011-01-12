@@ -1,3 +1,15 @@
+0.11
+----
+- Backwards-incompatible API changes
+- Improve documentation
+- Detect circular dependencies between evolution modules
+- Regain 100% statement coverage (however, unit tests depend on several
+  unreleased packages)
+
+0.10
+----
+- Add multi-package schema evolution support with DAG-ordered dependencies
+
 0.9
 ---
 
@@ -10,7 +22,7 @@
 0.8998
 ------
 
-- Improved packagibility (MANIFEST.in specified)
+- Improved packageability (MANIFEST.in specified)
 - SQLAlchemyEvolutionManager no longer calls session.commit(); this is
   your responsibility after the migration has completed.
 
