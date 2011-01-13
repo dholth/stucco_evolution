@@ -33,9 +33,8 @@ class SchemaVersion(Base):
 class SQLAlchemyEvolutionManager(object):
     implements(IEvolutionManager)
     def __init__(self, session, evolve_packagename,
-                 sw_version, initial_db_version=None,
-                 packagename=None):
-        """ Initialize a SQLAlchemy evolution manager.
+                 sw_version, packagename=None):
+        """Initialize a SQLAlchemy evolution manager.
         
         :param session: is a SQLAlchemy ORM session that will be passed
         in to each evolution step.
@@ -48,15 +47,11 @@ class SQLAlchemyEvolutionManager(object):
 
         :param sw_version: is the current software version of the software
         represented by this manager.
-
-        :param initial_db_version`` is left over from repoze.evolution; not 
-        currently useful as anything but the default 'None'.
         """
         self.session = session
         self.evolve_packagename = evolve_packagename
         self.packagename = packagename or evolve_packagename
         self.sw_version = sw_version
-        self.initial_db_version = initial_db_version
 
     def get_sw_version(self):
         return self.sw_version
@@ -64,8 +59,7 @@ class SQLAlchemyEvolutionManager(object):
     def get_db_version(self):
         query = self.session.query(SchemaVersion)
         db_version = query.filter_by(package=self.packagename).first()
-        if db_version is None:
-            return self.initial_db_version
+        if db_version is None: return None
         return db_version.version
 
     def evolve_to(self, version):
@@ -145,7 +139,7 @@ def manager(session, package_or_name):
     return manager
 
 def managers(session, dependencies):
-    """Return a list of  SQLAlchemyEvolutionManager instances given a session
+    """Return a list of SQLAlchemyEvolutionManager instances given a session
     and a list of evolution modules as returned by dependencies()."""
     built = []
     for evmodule in dependencies:

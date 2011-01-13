@@ -107,7 +107,7 @@ If you are arrogant enough to release your package as a dependency to another
 package or if it will be widely installed, you need to make sure your upgrade
 scripts are robust. The most important rule:
 
-*. New code must never change the output of old evolution scripts.
+* New code must never change the output of old evolution scripts.
 
 The simplest way to do this is to issue all DDL as text and never import
 your package in evolve scripts or call SQLAlchemy's create_all()
