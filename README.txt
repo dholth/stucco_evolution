@@ -48,13 +48,15 @@ Now you are ready to create your versioned schema::
 
 	import sqlalchemy.orm
 	from stucco_evolution import initialize, dependencies, managers
-	from stucco_evolution import create_or_upgrade_many
+	from stucco_evolution import create_or_upgrade_packages
 
 	Session = sqlalchemy.orm.sessionmaker(sqlalchemy.create_engine('sqlite:///:memory:'))
 	session = Session()
 
 	stucco_evolution.initialize(session) # Create stucco_evolution table if it does not exist
-	create_or_upgrade_many(managers(session, dependencies('mypackage')))
+	# create_or_upgrade_many(managers(session, dependencies('mypackage')))
+	# Equivalent to above line 'create_or_upgrade_many':
+	create_or_upgrade_packages(session, 'mypackage')
 	session.commit()
 
 In this pattern, stucco_evolution tries to create the schema for

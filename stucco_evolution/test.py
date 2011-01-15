@@ -57,7 +57,8 @@ def test_create_many():
     import logging
     logging.basicConfig(level=logging.DEBUG)
     from stucco_evolution import dependencies, managers
-    from stucco_evolution import create_many, upgrade_many, create_or_upgrade_many
+    from stucco_evolution import create_many, upgrade_many
+    from stucco_evolution import create_or_upgrade_packages
     engine = sqlalchemy.create_engine('sqlite:///:memory:')
     Session = sqlalchemy.orm.sessionmaker(bind=engine)
     session = Session()
@@ -66,7 +67,7 @@ def test_create_many():
     assert len(managers) == 3
     create_many(managers)
     upgrade_many(managers)
-    create_or_upgrade_many(managers)
+    create_or_upgrade_packages(session, 'stucco_openid')
 
 def test_create_or_upgrade_many():
     """The recommended schema management strategy."""

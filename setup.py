@@ -13,8 +13,8 @@ if sys.version_info < (2,7):
 tests_requires = ['nose'] + requires
 
 setup(name='stucco_evolution',
-      version='0.11',
-      description='Dead simple schema upgrades for SQLAlchemy.',
+      version='0.12',
+      description='Moderately simple schema upgrades for SQLAlchemy.',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
         "Programming Language :: Python",
@@ -25,7 +25,7 @@ setup(name='stucco_evolution',
       author='Daniel Holth',
       author_email='dholth@fastmail.fm',
       url='http://bitbucket.org/dholth/stucco_evolution',
-      keywords='sqlalchemy',
+      keywords='sqlalchemy stucco',
       license='BSD',
       packages=find_packages(),
       include_package_data=True,

@@ -162,7 +162,7 @@ def create_or_upgrade_many(managers):
     """For each manager in managers, if manager.get_db_version() is None,
     call manager.create(). Else call repoze.evolution.evolve_to_latest(manager).
     With this strategy, evolveN.py (not create.py) is responsible for
-    creating any new tables introduced in that version. Recommended.
+    creating any new tables introduced in that version.
     """
     for manager in managers:
         if manager.get_db_version() is None:
@@ -170,10 +170,21 @@ def create_or_upgrade_many(managers):
         else:
             repoze.evolution.evolve_to_latest(manager)
 
+def create_or_upgrade_packages(session, packagename):
+    """Create or upgrade schema for `packagename` and its dependencies,
+    using SQLAlchemy Session() `session`. Caller must commit transaction.
+    Recommended.
+    
+    Calls::
+
+        create_or_upgrade_many(managers(session, dependencies(packagename)))
+
+    """
+    create_or_upgrade_many(managers(session, dependencies(packagename)))
+
 def initialize(session):
     """Create tables for stucco_evolution itself (if they do not exist)."""
-    create_many(managers(session, 
-                               dependencies('stucco_evolution')))
+    create_many(managers(session, dependencies('stucco_evolution')))
 
 def is_initialized(session):
     """Is stucco_evolution ready to go for session?
