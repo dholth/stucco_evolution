@@ -1,3 +1,10 @@
+0.33
+----
+- Backwards-incompatible change. A SQLAlchemy connection is now required
+  everywhere a session was previously expected.
+  This is necessary for transactional DDL (the ability to roll back a
+  migration that throws an exception.)
+
 0.12
 ----
 - Add create_or_upgrade_packages(session, 'packagename') convenience function

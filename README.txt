@@ -1,13 +1,17 @@
 stucco_evolution
 ================
 
+**stucco_evolution >= 0.33 is incompatible with older releases, expecting
+a connection everywhere a Session() was previously required. This change
+enables fully transactional upgrades.**
+
 stucco_evolution extends repoze.evolution for SQLAlchemy. It provides a
 simple way to implement schema migrations within a single package as a
 collection of numbered Python scripts, and it provides a way for packages
 to depend on each other's schema as a directed acyclic graph, creating
 and upgrading each schema's tables in topological dependency order.
 
-stucco_evolution passes a SQLAlchemy session to a package of numbered
+stucco_evolution passes a SQLAlchemy connection to a package of numbered
 scripts in order, remembers the versions of installed schema, and sorts
 a collection of `evolve` packages by dependency order. It delegates
 writing the actual `ALTER TABLE` statements to another library or your
@@ -22,7 +26,7 @@ implied warranties, including, without limitation, the implied warranties
 of merchantibility and fitness for a particular purpose.
 
 Usage
-------
+-----
 
 If your package is called `mypackage`, you can add an evolution module
 which must be called `evolve`. This module will contain scripts to
@@ -40,24 +44,30 @@ create and migrate your schema from one version to the next::
 
 `evolve/create.py` should always create the most current `VERSION` of your schema. It should be idempotent::
 
-	def create(session):
+	def create(connection):
 	    import mypackage.models
-	    mypackage.models.Base.metadata.create_all(session.bind)
+	    mypackage.models.Base.metadata.create_all(connection)
 
 Now you are ready to create your versioned schema::
 
-	import sqlalchemy.orm
-	from stucco_evolution import initialize, dependencies, managers
-	from stucco_evolution import create_or_upgrade_packages
+    import sqlalchemy.orm
+    from stucco_evolution import initialize, dependencies, managers
+    from stucco_evolution import create_or_upgrade_packages
 
-	Session = sqlalchemy.orm.sessionmaker(sqlalchemy.create_engine('sqlite:///:memory:'))
-	session = Session()
-
-	stucco_evolution.initialize(session) # Create stucco_evolution table if it does not exist
-	# create_or_upgrade_many(managers(session, dependencies('mypackage')))
-	# Equivalent to above line 'create_or_upgrade_many':
-	create_or_upgrade_packages(session, 'mypackage')
-	session.commit()
+    engine = sqlalchemy.create_engine('sqlite:///:memory:')
+    connection = engine.connect()
+    transaction = connection.begin()
+    try:
+        initialize(connection) # Create stucco_evolution table if it does not exist
+        # create_or_upgrade_many(managers(connection, dependencies('mypackage')))
+        # Equivalent to above line 'create_or_upgrade_many':
+        create_or_upgrade_packages(connection, 'mypackage')
+        transaction.commit()
+    except:
+        transaction.rollback()
+        raise
+    finally:
+        connection.close()
 
 In this pattern, stucco_evolution tries to create the schema for
 `mypackage` and all its (0) dependencies, in topological order, if they
@@ -78,9 +88,9 @@ module.
 
 `evolve/evolve1.py`::
 
-	def evolve(session):
-	    session.execute("CREATE TABLE foo (bar INTEGER)")
-	    session.execute("ALTER TABLE baz ADD COLUMN quux INTEGER")
+	def evolve(connection):
+	    connection.execute("CREATE TABLE foo (bar INTEGER)")
+	    connection.execute("ALTER TABLE baz ADD COLUMN quux INTEGER")
 
 The next time you call `create_or_upgrade(...)`, stucco_evolution will
 notice `mymodule` is already tracked in the stucco_evolution table but

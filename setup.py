@@ -13,7 +13,7 @@ if sys.version_info < (2,7):
 tests_requires = ['nose'] + requires
 
 setup(name='stucco_evolution',
-      version='0.12',
+      version='0.33',
       description='Moderately simple schema upgrades for SQLAlchemy.',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[

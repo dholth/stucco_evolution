@@ -13,14 +13,14 @@ def test_evolve_compat():
     session.execute("INSERT INTO ponzi_evolution (package, version) VALUES ('ponzi_evolution', 1)")
     session.execute("INSERT INTO ponzi_evolution (package, version) VALUES ('third_party', 2)")
 
-    stucco_evolution.initialize(session)
+    stucco_evolution.initialize(session.connection())
 
     session.flush()
 
     session.execute("UPDATE stucco_evolution SET version = 1 WHERE package = 'stucco_evolution'")
 
     stucco_evolution.upgrade_many(
-              stucco_evolution.managers(session,
+              stucco_evolution.managers(session.connection(),
                   stucco_evolution.dependencies('stucco_evolution'))
               )
     
@@ -30,19 +30,21 @@ def test_evolve_compat():
     assert rows == 3, rows
 
 def test_initialize():
+    import stucco_evolution.evolve
     engine = sqlalchemy.create_engine('sqlite:///:memory:')
-    Session = sqlalchemy.orm.sessionmaker(bind=engine)
-    session = Session()
-    assert stucco_evolution.is_initialized(session) is False
-    stucco_evolution.initialize(session)
-    assert stucco_evolution.is_initialized(session)
+    connection = engine.connect()
+    assert stucco_evolution.is_initialized(connection) is False
+    stucco_evolution.initialize(connection)
+    assert stucco_evolution.is_initialized(connection)
+    db_version = stucco_evolution.manager(connection, 'stucco_evolution').get_db_version()
+    assert db_version == stucco_evolution.evolve.VERSION
 
 def test_unversioned():
     engine = sqlalchemy.create_engine('sqlite:///:memory:')
     Session = sqlalchemy.orm.sessionmaker(bind=engine)
     session = Session()
-    stucco_evolution.initialize(session)
-    manager = stucco_evolution.SQLAlchemyEvolutionManager(session, 'testing_testing', 4)
+    stucco_evolution.initialize(session.connection())
+    manager = stucco_evolution.SQLAlchemyEvolutionManager(session.connection(), 'testing_testing', 4)
     assert manager.get_db_version() is None
     assert manager.get_sw_version() is 4
     assert isinstance(repr(manager), basestring)
@@ -60,25 +62,27 @@ def test_create_many():
     from stucco_evolution import create_many, upgrade_many
     from stucco_evolution import create_or_upgrade_packages
     engine = sqlalchemy.create_engine('sqlite:///:memory:')
-    Session = sqlalchemy.orm.sessionmaker(bind=engine)
-    session = Session()
+    connection = engine.connect()
+    Session = sqlalchemy.orm.sessionmaker()
+    session = Session(bind=connection)
     dependencies = dependencies('stucco_openid')
-    managers = managers(session, dependencies)
+    managers = managers(connection, dependencies)
     assert len(managers) == 3
     create_many(managers)
     upgrade_many(managers)
-    create_or_upgrade_packages(session, 'stucco_openid')
+    create_or_upgrade_packages(connection, 'stucco_openid')
+
+    connection.close()
 
 def test_create_or_upgrade_many():
     """The recommended schema management strategy."""
     from stucco_evolution import dependencies, managers
     from stucco_evolution import create_or_upgrade_many
     engine = sqlalchemy.create_engine('sqlite:///:memory:')
-    Session = sqlalchemy.orm.sessionmaker(bind=engine)
-    session = Session()
+    connection = engine.connect()
     dependencies = dependencies('stucco_openid')
-    managers = managers(session, dependencies)
-    stucco_evolution.initialize(session)
+    managers = managers(connection, dependencies)
+    stucco_evolution.initialize(connection)
     create_or_upgrade_many(managers)
     
 def test_naming_mischief():
@@ -126,3 +130,68 @@ def test_circdep():
 
 def test_manager_from_name():
     assert stucco_evolution.manager(None, 'stucco_evolution') is not None
+
+def test_transactional_ddl():
+    """Ensure CREATE TABLE statements can be rolled back when there is
+    an error in the migration.
+
+    XXX This test will only pass with a patched pysqlite.
+    """
+    from sqlalchemy import Column, Integer
+    from sqlalchemy.ext.declarative import declarative_base
+    Base = declarative_base()
+    class BoringTable(Base):
+        __tablename__ = "boring"
+        id = Column(Integer, primary_key=True)
+
+    class TestException(Exception): pass
+
+    class TestEvolutionManager(stucco_evolution.SQLAlchemyEvolutionManager):
+        def create(self):
+            Base.metadata.create_all(self.connection)
+
+        def evolve_to(self, version):
+            self.connection.execute("INSERT INTO boring (id) VALUES (1)")
+            raise TestException("It wasn't meant to be.")
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+    connection = engine.connect()
+
+    trans = connection.begin()
+
+    stucco_evolution.initialize(connection)
+    managers = [TestEvolutionManager(connection, 'test', 0)]
+    stucco_evolution.create_or_upgrade_many(managers)
+
+    managers[0].sw_version=1
+
+    @raises(TestException)
+    def go():
+        try:
+            managers[0].evolve_to(1)
+        except:
+            trans.rollback()
+            raise
+
+    go()
+
+    assert not engine.has_table('boring')
+
+    connection.close()
+
+def test_transactional_ddl_2():
+    import logging
+    log = logging.getLogger(__name__)
+    engine = sqlalchemy.create_engine('sqlite:///:memory:')
+    connection = engine.connect()
+    log.debug("Isolation level: %s", 
+              connection.connection.connection.isolation_level)
+    trans = connection.begin()
+    connection.execute("CREATE TABLE foo (bar INTEGER)")
+    tables = connection.execute('PRAGMA table_info("foo")').fetchall()
+    log.debug(tables)
+    assert tables, tables
+    trans.rollback()
+    assert not engine.has_table('foo')
+
+    connection.close()
