@@ -26,7 +26,7 @@
 
 - Rename to stucco_evolution
 - stucco_evolution's own upgrade() will now deletage all
-  stucco_evolution.Base.metadata.crete_all(session) to the evolveN.py
+  stucco_evolution.Base.metadata.create_all(session) to the evolveN.py
   scripts. This avoids 'DROP TABLE' statements when an upgrade includes
   table renames.
 
