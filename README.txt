@@ -48,6 +48,12 @@ create and migrate your schema from one version to the next::
 	    import mypackage.models
 	    mypackage.models.Base.metadata.create_all(connection)
 
+(If you have Paste Script installed you can type `paster create
+-t stucco_evolution [mypackage]` to create an evolution module in
+[mypackage]/evolve. Since Paste Script's package name substitution is
+not perfect, check mypackage/evolve/__init__.py to make sure NAME +
+'.evolve' can be imported.)
+
 Now you are ready to create your versioned schema::
 
     import sqlalchemy.orm

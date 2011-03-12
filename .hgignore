@@ -6,4 +6,5 @@ syntax:glob
 *.so
 *.log
 *.egg-info/*
+*.rej
 dist/*

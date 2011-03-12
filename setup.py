@@ -13,7 +13,7 @@ if sys.version_info < (2,7):
 tests_requires = ['nose'] + requires
 
 setup(name='stucco_evolution',
-      version='0.33',
+      version='0.34',
       description='Moderately simple schema upgrades for SQLAlchemy.',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
@@ -35,6 +35,8 @@ setup(name='stucco_evolution',
       obsoletes=['ponzi_evolution'],
       test_suite='nose.collector',
       entry_points = """\
+      [paste.paster_create_template]
+      stucco_evolution=stucco_evolution.paster:EvolveModule
       """,
       )
 

@@ -44,7 +44,8 @@ def test_unversioned():
     Session = sqlalchemy.orm.sessionmaker(bind=engine)
     session = Session()
     stucco_evolution.initialize(session.connection())
-    manager = stucco_evolution.SQLAlchemyEvolutionManager(session.connection(), 'testing_testing', 4)
+    manager = stucco_evolution.SQLAlchemyEvolutionManager(session.connection(), 
+                                                          'testing_testing', 4)
     assert manager.get_db_version() is None
     assert manager.get_sw_version() is 4
     assert isinstance(repr(manager), basestring)
@@ -132,11 +133,7 @@ def test_manager_from_name():
     assert stucco_evolution.manager(None, 'stucco_evolution') is not None
 
 def test_transactional_ddl():
-    """Ensure CREATE TABLE statements can be rolled back when there is
-    an error in the migration.
-
-    XXX This test will only pass with a patched pysqlite.
-    """
+    """Test transaction ddl. Requires a patched sqlite3 module."""
     from sqlalchemy import Column, Integer
     from sqlalchemy.ext.declarative import declarative_base
     Base = declarative_base()
@@ -180,6 +177,7 @@ def test_transactional_ddl():
     connection.close()
 
 def test_transactional_ddl_2():
+    """Test transaction ddl (2). Requires a patched sqlite3 module."""
     import logging
     log = logging.getLogger(__name__)
     engine = sqlalchemy.create_engine('sqlite:///:memory:')
