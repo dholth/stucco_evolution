@@ -1,1 +1,3 @@
 include *.txt
+include stucco_evolution/+template+/evolve/*.py
+include stucco_evolution/+template+/evolve/*_tmpl

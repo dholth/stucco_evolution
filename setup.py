@@ -7,13 +7,11 @@ README = open(os.path.join(here, 'README.txt')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 requires = ['SQLAlchemy', 'repoze.evolution']
-if sys.version_info < (2,7):
-    requires.append('argparse')
 
 tests_requires = ['nose'] + requires
 
 setup(name='stucco_evolution',
-      version='0.34',
+      version='0.35',
       description='Moderately simple schema upgrades for SQLAlchemy.',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[

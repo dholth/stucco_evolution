@@ -174,7 +174,7 @@ def create_or_upgrade_many(managers):
 
 def create_or_upgrade_packages(connection, packagename):
     """Create or upgrade schema for `packagename` and its dependencies,
-    using SQLAlchemy Session() `connection`. Caller must commit transaction.
+    using SQLAlchemy `connection`. Caller must commit transaction.
     Recommended.
     
     Calls::
