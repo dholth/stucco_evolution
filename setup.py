@@ -11,7 +11,7 @@ requires = ['SQLAlchemy', 'repoze.evolution']
 tests_requires = ['nose'] + requires
 
 setup(name='stucco_evolution',
-      version='0.4',
+      version='0.4.1',
       description='Moderately simple schema upgrades for SQLAlchemy.',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[

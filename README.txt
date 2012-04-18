@@ -4,6 +4,8 @@ stucco_evolution
 Demo
 ----
 
+Typical use::
+
     import sqlalchemy
     import stucco_evolution
 
