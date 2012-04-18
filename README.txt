@@ -1,9 +1,24 @@
 stucco_evolution
 ================
 
-**stucco_evolution >= 0.33 is incompatible with older releases, expecting
-a connection everywhere a Session() was previously required. This change
-enables fully transactional upgrades.**
+Demo
+----
+
+    import sqlalchemy
+    import stucco_evolution
+
+    engine = sqlalchemy.create_engine(...)
+
+    with engine.begin() as connection:
+        stucco_evolution.initialize(connection)
+        stucco_evolution.create_or_upgrade_packages(connection, 'mypackage')
+
+stucco_evolution creates or upgrades the database schema for itself,
+'mypackage', and the dependencies of 'mypackage', in a transaction, in 
+the correct, topologically-sorted order.
+
+Summary
+-------
 
 stucco_evolution extends repoze.evolution for SQLAlchemy. It provides a
 simple way to implement schema migrations within a single package as a
@@ -56,27 +71,17 @@ not perfect, check mypackage/evolve/__init__.py to make sure NAME +
 
 Now you are ready to create your versioned schema::
 
-    import sqlalchemy.orm
-    from stucco_evolution import initialize, dependencies, managers
-    from stucco_evolution import create_or_upgrade_packages
+    import sqlalchemy
+    import stucco_evolution
 
-    engine = sqlalchemy.create_engine('sqlite:///:memory:')
-    connection = engine.connect()
-    transaction = connection.begin()
-    try:
-        initialize(connection) # Create stucco_evolution table if it does not exist
-        # create_or_upgrade_many(managers(connection, dependencies('mypackage')))
-        # Equivalent to above line 'create_or_upgrade_many':
-        create_or_upgrade_packages(connection, 'mypackage')
-        transaction.commit()
-    except:
-        transaction.rollback()
-        raise
-    finally:
-        connection.close()
+    engine = sqlalchemy.create_engine(...)
+
+    with engine.begin() as connection: # engine.begin() since SQLAlchemy 0.7.6
+        stucco_evolution.initialize(connection)
+        stucco_evolution.create_or_upgrade_packages(connection, 'mypackage')
 
 In this pattern, stucco_evolution tries to create the schema for
-`mypackage` and all its (0) dependencies, in topological order, if they
+`mypackage` and all its dependencies, in topological order, if they
 are not currently tracked in the stucco_evolution table. `create.py`
 will only ever be called once for a particular package, so the evolution
 scripts must be responsible for creating new tables added in a particular

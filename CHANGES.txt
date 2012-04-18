@@ -1,3 +1,7 @@
+0.4
+---
+- create_many() checks whether schema has been installed
+
 0.35
 ----
 - fix manifest to properly include paster template

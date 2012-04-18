@@ -186,7 +186,8 @@ def create_or_upgrade_packages(connection, packagename):
 
 def initialize(connection):
     """Create tables for stucco_evolution itself (if they do not exist)."""
-    create_many(managers(connection, dependencies('stucco_evolution')))
+    if not is_initialized(connection):
+        manager(connection, 'stucco_evolution').create()
 
 def is_initialized(connection):
     """Is stucco_evolution ready to go for connection?
