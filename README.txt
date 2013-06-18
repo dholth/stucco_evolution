@@ -22,6 +22,13 @@ the correct, topologically-sorted order.
 Summary
 -------
 
+stucco_evolution's distinguishing feature is that it can be used to
+publish related database schemas as separate packages instead of having
+to manage them monolithically.  By keeping track of dependencies between
+schemas, tables for e.g. User / Group models are automatically created
+or upgraded before the more application-specific tables.  The intent is
+to enable greater reuse of database code.
+
 stucco_evolution extends repoze.evolution for SQLAlchemy. It provides a
 simple way to implement schema migrations within a single package as a
 collection of numbered Python scripts, and it provides a way for packages
