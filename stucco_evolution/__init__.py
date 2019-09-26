@@ -1,5 +1,5 @@
 from pkg_resources import EntryPoint
-from zope.interface import implements
+from zope.interface import implementer
 from zope.interface import Interface
 
 import repoze.evolution
@@ -31,8 +31,8 @@ class SchemaVersion(Base):
         return "<%s%r>" % (self.__class__.__name__, 
                            (self.package, self.version))
 
+@implementer(IEvolutionManager)
 class SQLAlchemyEvolutionManager(object):
-    implements(IEvolutionManager)
     def __init__(self, connection, evolve_packagename,
                  sw_version, packagename=None):
         """Initialize a SQLAlchemy evolution manager.
