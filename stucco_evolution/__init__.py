@@ -208,4 +208,3 @@ def is_initialized(connection):
     """Is stucco_evolution ready to go for connection?
     If not, call initialize(connection)"""
     return connection.dialect.has_table(connection, SchemaVersion.__tablename__)
-

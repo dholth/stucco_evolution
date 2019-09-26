@@ -1,3 +1,3 @@
-NAME = 'stucco_evolution'
+NAME = "stucco_evolution"
 VERSION = 2
 DEPENDS = []
